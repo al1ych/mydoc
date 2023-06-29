@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Example service @ MyDoc</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: #333;
+            padding: 1rem;
+            background-color: rgb(250, 245, 245);
+        }
+
+        input {
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        textarea {
+            display: block;
+            min-height: 50px;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            resize: vertical;
+        }
+
+        h2 {
+            display: inline;
+        }
+
+        .operation {
+            margin-bottom: 1rem;
+        }
+
+        .method-label {
+            display: flex;
+
+            padding: 2px 6px;
+            border-radius: 4px;
+            /* text-transform: uppercase; */
+            /* font-weight: 600; */
+            color: #fff;
+            /* margin-right: 8px; */
+            cursor: pointer;
+            border: none;
+
+            /* font-family: 'Courier New', Courier, monospace; */
+            /* font-family: monospace; */
+        }
+
+        .get {
+            background-color: #61affe;
+        }
+
+        .post {
+            background-color: #49cc90;
+        }
+
+        .put {
+            background-color: #fca130;
+        }
+
+        .delete {
+            background-color: #f93e3e;
+        }
+
+        .result {
+            /* margin-left: 1rem; */
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        pre {
+            background-color: #f5f5f5;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 1rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            overflow: auto;
+            max-height: 400px;
+        }
+
+        code {
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .json-container {
+            padding: 1rem;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            overflow: auto;
+            max-height: 400px;
+        }
+
+        .json-key {
+            color: #a90d91;
+        }
+
+        .json-string {
+            color: #22863a;
+        }
+
+        .json-boolean,
+        .json-null {
+            color: #1f61a0;
+        }
+
+        .json-value {
+            color: #d73a49;
+        }
+
+        .shift-right {
+            /* padding-left: 1rem;
+            padding-right: 1rem; */
+        }
+
+        /* select all elements of class 'result' that have empty content text */
+        .result:empty {
+            display: none;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Mydoc example service</h1>
+    <div id="operations"></div>
+
+    <script>
+
+        const operationsContainer = document.getElementById('operations');
+
+        async function fetchOpenAPI() {
+            const response = await fetch('/api/v1/openapi.json');
+            return await response.json();
+        }
+
+        async function fetchAndRenderData(method, path, bodyInput, resultDiv) {
+            try {
+                const options = {
+                    method,
+                    headers: {},
+                };
+
+                if (bodyInput) {
+                    options.headers['Content-Type'] = 'application/json';
+                    options.body = JSON.stringify(JSON.parse(bodyInput.value));
+                }
+
+                const response = await fetch(path, options);
+
+                const contentType = response.headers.get('Content-Type');
+                resultDiv.innerHTML = '';
+
+                if (contentType.includes('application/json')) {
+                    const data = await response.json();
+                    const table = renderTable(data);
+                    if (table) {
+                        resultDiv.innerHTML = '';
+                        resultDiv.appendChild(table);
+                    } else {
+                        renderJson(resultDiv, data);
+                    }
+                } else if (contentType.includes('image')) {
+                    const blob = await response.blob();
+                    renderImage(resultDiv, blob);
+                } else if (contentType.includes('text/html')) {
+                    const html = await response.text();
+                    renderHtml(resultDiv, html);
+                }
+            } catch (error) {
+                resultDiv.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        function renderJson(resultDiv, data) {
+            const formattedJson = JSON.stringify(data, null, 2);
+            const jsonContainer = document.createElement('div');
+            jsonContainer.className = 'json-container';
+            jsonContainer.innerHTML = formattedJson.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let className = 'json-value';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        className = 'json-key';
+                    } else {
+                        className = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    className = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    className = 'json-null';
+                }
+                return '<span class="' + className + '">' + match + '</span>';
+            });
+            resultDiv.appendChild(jsonContainer);
+        }
+
+        function renderImage(resultDiv, blob) {
+            const url = URL.createObjectURL(blob);
+            const img = document.createElement('img');
+            img.src = url;
+            img.onload = () => URL.revokeObjectURL(url);
+            img.style.maxWidth = '50%';
+            img.style.height = 'auto';
+            img.style.float = 'left';
+            resultDiv.appendChild(img);
+        }
+
+        function renderHtml(resultDiv, html) {
+            resultDiv.innerHTML = html;
+        }
+
+        function renderTable(jsonObject) {
+            if (jsonObject.type !== 'table') {
+                return null;
+            }
+
+            const tableData = jsonObject.data;
+            if (!tableData || !Array.isArray(tableData) || tableData.length === 0) {
+                return null;
+            }
+
+            const table = document.createElement('table');
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            // Create the header row
+            const headerRow = document.createElement('tr');
+            for (const key in tableData[0]) {
+                const th = document.createElement('th');
+                th.textContent = key;
+                headerRow.appendChild(th);
+            }
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            // Create the data rows
+            for (const row of tableData) {
+                const dataRow = document.createElement('tr');
+                for (const key in row) {
+                    const td = document.createElement('td');
+                    td.textContent = row[key];
+                    dataRow.appendChild(td);
+                }
+                tbody.appendChild(dataRow);
+            }
+            table.appendChild(tbody);
+
+            return table;
+        }
+
+
+        function createOperationElement(operationId, method, path, summary) {
+            const operationDiv = document.createElement('div');
+            operationDiv.classList.add('operation');
+
+            const methodLabel = document.createElement('span');
+            methodLabel.classList.add('method-label');
+            methodLabel.classList.add(method.toLowerCase());
+            // methodLabel.textContent = `${method.toUpperCase()} ${path} ${summary}`;
+            methodLabel.innerHTML = `<code class='bold'>${method.toUpperCase()}</code> <code class="url">${path}</span> <span style='font-family: sans-serif; text-align: center'>${summary}</span>`;
+
+            const url = document.createElement('span');
+            url.textContent = path;
+
+            const resultDiv = document.createElement('pre');
+            resultDiv.classList.add('result');
+            resultDiv.classList.add('clearfix'); // Add the clearfix class to resultDiv
+
+            operationDiv.appendChild(methodLabel);
+
+            if (path.includes('{')) {
+                const pathParams = path.match(/{(.*?)}/g);
+                const pathParamInputs = [];
+                for (const pathParam of pathParams) {
+                    const pathParamInput = document.createElement('input');
+                    pathParamInput.classList.add('shift-right');
+                    pathParamInput.classList.add('json-container');
+                    pathParamInput.placeholder = pathParam.substring(1, pathParam.length - 1);
+                    operationDiv.appendChild(pathParamInput);
+                    pathParamInputs.push(pathParamInput);
+                }
+                methodLabel.onclick = () => {
+                    let pathWithParams = path;
+                    for (const pathParamInput of pathParamInputs) {
+                        pathWithParams = pathWithParams.replace(/{(.*?)}/, pathParamInput.value);
+                        console.log("path with params", pathWithParams);
+                    }
+                    fetchAndRenderData(method, pathWithParams, undefined, resultDiv);
+                };
+            } else if (method === 'post' || method === 'put') {
+                const bodyInput = document.createElement('textarea');
+                bodyInput.placeholder = 'json';
+                bodyInput.classList.add('json-container');
+                bodyInput.classList.add('shift-right');
+
+                bodyInput.addEventListener('keydown', function (event) {
+                    if (event.key === 'Tab') {
+                        event.preventDefault();
+                        var start = this.selectionStart;
+                        var end = this.selectionEnd;
+                        this.value = this.value.substring(0, start) + "\t" + this.value.substring(end);
+                        this.selectionStart = this.selectionEnd = start + 1;
+                    }
+                });
+
+                operationDiv.appendChild(bodyInput);
+                methodLabel.onclick = () => {
+                    console.log("post put method click", method, path, bodyInput, resultDiv);
+                    fetchAndRenderData(method, path, bodyInput, resultDiv);
+                };
+            } else {
+                methodLabel.onclick = () => {
+                    fetchAndRenderData(method, path, undefined, resultDiv);
+                };
+            }
+            operationDiv.appendChild(resultDiv);
+            return operationDiv;
+        }
+
+        async function displayOperations() {
+            const openapi = await fetchOpenAPI();
+            for (const path in openapi.paths) {
+                for (const method in openapi.paths[path]) {
+                    const operation = openapi.paths[path][method];
+                    const operationId = operation.operationId;
+                    const summary = operation.summary || '';
+
+                    translateText(summary, 'ru').then((translatedSummary) => {
+                        console.log("translatedSummary", translatedSummary);
+                        const methodLabels = document.getElementsByClassName('method-label');
+                        for (const methodLabel of methodLabels) {
+                            if (methodLabel.textContent === summary && translatedSummary) {
+                                methodLabel.textContent = translatedSummary;
+                            }
+                        }
+                    });
+
+                    const operationElement = createOperationElement(operationId, method, path, summary);
+                    operationsContainer.appendChild(operationElement);
+
+                }
+            }
+        }
+
+        async function translateText(text, targetLanguage) {
+            console.log("requesting translation", text, targetLanguage);
+
+            const response = await fetch('https://libretranslate.de/translate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    q: text,
+                    source: 'en',
+                    target: targetLanguage
+                })
+            });
+
+            console.log("response", response);
+
+            const translatedData = await response.json();
+            return translatedData.translatedText;
+        }
+
+        displayOperations();
+    </script>
+</body>
+
+</html>
