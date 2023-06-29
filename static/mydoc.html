@@ -31,23 +31,20 @@
         }
 
         .operation {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary {
+            padding-bottom: 0.3rem;
         }
 
         .method-label {
             display: flex;
-
             padding: 2px 6px;
             border-radius: 4px;
-            /* text-transform: uppercase; */
-            /* font-weight: 600; */
             color: #fff;
-            /* margin-right: 8px; */
             cursor: pointer;
             border: none;
-
-            /* font-family: 'Courier New', Courier, monospace; */
-            /* font-family: monospace; */
         }
 
         .get {
@@ -68,6 +65,7 @@
 
         .result {
             /* margin-left: 1rem; */
+            margin-top: 0.5rem;
         }
 
         table {
@@ -117,6 +115,7 @@
 
         .json-container {
             padding: 1rem;
+            /* margin-bottom: 0.3rem; */
             background-color: #f5f5f5;
             border-radius: 4px;
             border: 1px solid #ccc;
@@ -292,11 +291,15 @@
             const operationDiv = document.createElement('div');
             operationDiv.classList.add('operation');
 
+            const summaryElement = document.createElement('div');
+            summaryElement.classList.add('summary');
+            summaryElement.textContent = summary;
+
             const methodLabel = document.createElement('span');
             methodLabel.classList.add('method-label');
             methodLabel.classList.add(method.toLowerCase());
             // methodLabel.textContent = `${method.toUpperCase()} ${path} ${summary}`;
-            methodLabel.innerHTML = `<code class='bold'>${method.toUpperCase()}</code> <code class="url">${path}</span> <span style='font-family: sans-serif; text-align: center'>${summary}</span>`;
+            methodLabel.innerHTML = `<code class='bold'>${method.toUpperCase()}</code> <code class="url">${path}</span>`;
 
             const url = document.createElement('span');
             url.textContent = path;
@@ -305,6 +308,7 @@
             resultDiv.classList.add('result');
             resultDiv.classList.add('clearfix'); // Add the clearfix class to resultDiv
 
+            operationDiv.appendChild(summaryElement);
             operationDiv.appendChild(methodLabel);
 
             if (path.includes('{')) {
@@ -366,7 +370,7 @@
 
                     translateText(summary, 'ru').then((translatedSummary) => {
                         console.log("translatedSummary", translatedSummary);
-                        const methodLabels = document.getElementsByClassName('method-label');
+                        const methodLabels = document.getElementsByClassName('summary');
                         for (const methodLabel of methodLabels) {
                             if (methodLabel.textContent === summary && translatedSummary) {
                                 methodLabel.textContent = translatedSummary;

@@ -69,7 +69,7 @@ async def custom_mydoc():
 
 # get image
 @app.get("/image", tags=["Image"],
-         summary="Get image",
+         summary="This method gets you the logo image for MTS",
          operation_id="get_image")
 async def get_image():
     return FileResponse("static/mts_logo.png")
