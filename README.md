@@ -1,4 +1,12 @@
 # Mydoc
+**English:**
+Doc generation with improved functionality.
+
+Based on the backend code, an OpenAPI specification is generated, which is interpreted by Mydoc and an interactive interface is created. This interface can be hosted on the /mydoc address of the same server as shown in the main.py file using the FastAPI server example.
+
+There is also an automatic translation of the summary in the documentation in Russian language with the opener of the translator.
+
+**Русский:**
 Докогенерация с улучшенным функционалом.
 
 По коду бекенда генерится OpenAPI спецификация, которая интерпретируется Mydoc и создается интерактивный интерфейс. Этот интерфейс можно хостить на адресе /mydoc того же сервера как показано в файле main.py на примере FastAPI сервера.
